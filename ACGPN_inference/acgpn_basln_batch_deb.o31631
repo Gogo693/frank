@@ -1,0 +1,122 @@
+
+CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
+To initialize your shell, run
+
+    $ conda init <SHELL_NAME>
+
+Currently supported shells are:
+  - bash
+  - fish
+  - tcsh
+  - xonsh
+  - zsh
+  - powershell
+
+See 'conda init --help' for more information and options.
+
+IMPORTANT: You may need to close and restart your shell after running 'conda init'.
+
+
+?
+------------ Options -------------
+batchSize: 1
+beta1: 0.5
+checkpoints_dir: ../ACGPN_train/checkpoints/
+clothlmg2: False
+clothrep: False
+continue_train: False
+data_type: 32
+dataroot: ../../test_data/
+debug: False
+dense: False
+densearms: False
+denseone: False
+denseplus: True
+densestack: False
+display_freq: 100
+display_winsize: 512
+fineSize: 512
+gpu_ids: [0]
+input_nc: 3
+isTrain: True
+label_nc: 20
+lambda_feat: 10.0
+landmarks: True
+loadSize: 512
+load_pretrain: ./checkpoints/label2city
+lr: 0.0002
+max_dataset_size: inf
+mesh: False
+mesh_g: False
+model: pix2pixHD
+nThreads: 2
+n_blocks_global: 4
+n_blocks_local: 3
+n_downsample_global: 4
+n_layers_D: 3
+n_local_enhancers: 1
+name: denseplus_flm_nobodyseg_g2dense
+ndf: 64
+neck: False
+netG: global
+ngf: 64
+niter: 100
+niter_decay: 100
+niter_fix_global: 0
+no_flip: False
+no_ganFeat_loss: False
+no_html: False
+no_lsgan: False
+no_vgg_loss: False
+nobodyseg: True
+nocollar: False
+noopenpose: False
+norm: instance
+num_D: 2
+output_nc: 3
+pants: False
+phase: test
+pool_size: 0
+print_freq: 100
+resize_or_crop: scale_width
+save_epoch_freq: 10
+save_latest_freq: 1000
+serial_batches: False
+tf_log: False
+transfer: False
+use_dropout: False
+verbose: False
+which_epoch: latest
+-------------- End ----------------
+CustomDatasetDataLoader
+dataset [AlignedDataset] was created
+../../test_data/test_label label
+../../test_data/test_label label
+../../test_data/test_img img
+../../test_data/test_img img
+../../test_data/test_edge edge
+../../test_data/test_edge edge
+../../test_data/test_mask mask
+../../test_data/test_mask mask
+../../test_data/test_colormask colormask
+../../test_data/test_colormask colormask
+../../test_data/test_color color
+../../test_data/test_color color
+../../test_data/test_seg seg
+../../test_data/test_seg seg
+../../test_data/test_mesh mesh
+../../test_data/test_mesh mesh
+../../test_data/test_dense dense
+../../test_data/test_dense dense
+../../test_data/test_landmarks_cloth cloth
+../../test_data/test_landmarks_cloth cloth
+# Inference images = 2032
+Traceback (most recent call last):
+  File "test.py", line 246, in <module>
+    model = create_model(opt)
+  File "/work/gcrepaldi/vton/acgpn_custom/ACGPN_inference/models/models.py", line 5, in create_model
+    from .pix2pixHD_model import Pix2PixHDModel, InferenceModel
+  File "/work/gcrepaldi/vton/acgpn_custom/ACGPN_inference/models/pix2pixHD_model.py", line 263
+    oneHot_size = (size[0], l_num, size[2], size[3])
+                                                   ^
+TabError: inconsistent use of tabs and spaces in indentation

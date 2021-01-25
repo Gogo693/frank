@@ -1,0 +1,95 @@
+
+CommandNotFoundError: Your shell has not been properly configured to use 'conda activate'.
+To initialize your shell, run
+
+    $ conda init <SHELL_NAME>
+
+Currently supported shells are:
+  - bash
+  - fish
+  - tcsh
+  - xonsh
+  - zsh
+  - powershell
+
+See 'conda init --help' for more information and options.
+
+IMPORTANT: You may need to close and restart your shell after running 'conda init'.
+
+
+?
+------------ Options -------------
+batchSize: 1
+beta1: 0.5
+checkpoints_dir: ./checkpoints
+clothrep: False
+continue_train: False
+data_type: 32
+dataroot: ./data/Data_preprocessing/Data_preprocessing/
+debug: False
+display_freq: 100
+display_winsize: 512
+fineSize: 512
+gpu_ids: [0]
+input_nc: 3
+isTrain: True
+label_nc: 20
+lambda_feat: 10.0
+landmarks: False
+loadSize: 512
+load_pretrain: ./checkpoints/label2city
+lr: 0.0002
+max_dataset_size: inf
+mesh: False
+mesh_g: False
+model: pix2pixHD
+nThreads: 2
+n_blocks_global: 4
+n_blocks_local: 3
+n_downsample_global: 4
+n_layers_D: 3
+n_local_enhancers: 1
+name: label2city
+ndf: 64
+netG: global
+ngf: 64
+niter: 100
+niter_decay: 100
+niter_fix_global: 0
+no_flip: False
+no_ganFeat_loss: False
+no_html: False
+no_lsgan: False
+no_vgg_loss: False
+norm: instance
+num_D: 2
+output_nc: 3
+phase: test
+pool_size: 0
+print_freq: 100
+resize_or_crop: scale_width
+save_epoch_freq: 10
+save_latest_freq: 1000
+serial_batches: False
+tf_log: False
+transfer: False
+use_dropout: False
+verbose: False
+which_epoch: latest
+-------------- End ----------------
+CustomDatasetDataLoader
+dataset [AlignedDataset] was created
+Traceback (most recent call last):
+  File "test.py", line 86, in <module>
+    data_loader = CreateDataLoader(opt)
+  File "/work/gcrepaldi/vton/acgpn_custom/ACGPN_inference/data/data_loader.py", line 6, in CreateDataLoader
+    data_loader.initialize(opt)
+  File "/work/gcrepaldi/vton/acgpn_custom/ACGPN_inference/data/custom_dataset_data_loader.py", line 20, in initialize
+    self.dataset = CreateDataset(opt)
+  File "/work/gcrepaldi/vton/acgpn_custom/ACGPN_inference/data/custom_dataset_data_loader.py", line 11, in CreateDataset
+    dataset.initialize(opt)
+  File "/work/gcrepaldi/vton/acgpn_custom/ACGPN_inference/data/aligned_dataset.py", line 20, in initialize
+    self.A_paths = sorted(make_dataset(self.dir_A))
+  File "/work/gcrepaldi/vton/acgpn_custom/ACGPN_inference/data/image_folder.py", line 17, in make_dataset
+    assert os.path.isdir(dir), '%s is not a valid directory' % dir
+AssertionError: ./data/Data_preprocessing/Data_preprocessing/test_label is not a valid directory

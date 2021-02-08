@@ -82,6 +82,24 @@ def changearm(old_label):
     label=label*(1-noise)+noise*4
     return label
 
+def changearmneck(old_label, vt_label):
+    label=old_label
+    arm1=torch.FloatTensor((data['label'].cpu().numpy()==11).astype(np.int))
+    arm2=torch.FloatTensor((data['label'].cpu().numpy()==13).astype(np.int))
+    noise=torch.FloatTensor((data['label'].cpu().numpy()==7).astype(np.int))
+    neck = torch.FloatTensor((vt_label.cpu().numpy()==20).astype(np.int))
+    label=label*(1-arm1)+arm1*4
+    label=label*(1-arm2)+arm2*4
+    label=label*(1-noise)+noise*4
+    label = label * (1 - neck) + neck * 4
+    return label
+
+def addneck(old_label, vt_label):
+    label = old_label
+    neck = torch.FloatTensor((vt_label.cpu().numpy() == 20).astype(np.int))
+    label = label * (1 - neck) + neck * 14
+    return label
+
 def changeseg(dense, seg):
     dense_part_show = np.copy(dense[:, 2, :, :])
     seg_body = (seg == 4).cpu().numpy().astype(np.int)
@@ -112,6 +130,7 @@ def add_misscloth(ac_label, vt_label):
 
     return label
 
+'''
 def add_neck(ac_label, dense):
     new_label = ac_label
     seg_head = torch.FloatTensor((ac_label.cpu().numpy() == 1).astype(np.int)) \
@@ -132,6 +151,7 @@ def add_neck(ac_label, dense):
     new_label = new_label * (1 - neck) + neck * 14
 
     return new_label
+'''
 
 def remove_bodyseg(seg):
     label = seg
@@ -199,15 +219,24 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         mask_clothes=torch.FloatTensor((data['label'].cpu().numpy()==4).astype(np.int))
         # if opt.pants:
         label = add_misscloth(data['label'], data['vt_label'])
+
+        if opt.neck:
+            all_clothes_label = changearmneck(data['label'], data['vt_label'])
+            all_clothes_label = add_misscloth(all_clothes_label, data['vt_label'])
+
+            label = addneck(label, data['vt_label'])
+            NC = 15
+
         # else:
         #    label = data['label']
-        mask_fore=torch.FloatTensor((data['label'].cpu().numpy()>0).astype(np.int))
+        mask_fore=torch.FloatTensor((label.cpu().numpy()>0).astype(np.int))
         img_fore=data['image']*mask_fore
         img_fore_wc=img_fore*mask_fore
-        all_clothes_label=changearm(data['label'])
 
-        
-        all_clothes_label = add_misscloth(all_clothes_label, data['vt_label'])
+
+        if not opt.neck:
+            all_clothes_label = changearm(data['label'])
+            all_clothes_label = add_misscloth(all_clothes_label, data['vt_label'])
 
         if opt.dense:
             all_clothes_label = data['dense']
@@ -218,9 +247,11 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         if opt.nobodyseg:
             all_clothes_label = remove_bodyseg(all_clothes_label)
 
+        '''
         if opt.neck:
             label = add_neck(label, data['dense'])
             NC = 15
+        '''
 
 
         '''

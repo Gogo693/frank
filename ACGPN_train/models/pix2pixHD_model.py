@@ -36,8 +36,11 @@ def generate_discrete_label(inputs, label_nc,onehot=True,encode=True):
     input_label = input_label.scatter_(1, label_map.data.long().cuda(), 1.0)
                       
     return input_label
-def encode(label_map,size):
-    label_nc=14
+def encode(label_map,size, opt):
+    if opt.neck:
+        label_nc=15
+    else:
+        label_nc=14
     oneHot_size = (size[0], label_nc, size[2], size[3])
     input_label = torch.cuda.FloatTensor(torch.Size(oneHot_size)).zero_()
     input_label = input_label.scatter_(1, label_map.data.long().cuda(), 1.0)
@@ -130,7 +133,7 @@ class Pix2PixHDModel(BaseModel):
         if self.opt.densestack:
             dense_dim = 6
 
-        if self.opt.clothlmg2 or self.opt.denseplus:
+        if self.opt.clothlmg2 or self.opt.clothrepG2:
             cloth_lm_dim = 6
 
         pose_dim = 18
@@ -247,7 +250,11 @@ class Pix2PixHDModel(BaseModel):
 
             if self.opt.landmarks:
                 # Loss for Fashion Landmarks
-                self.criterionLM = networks.LandmarksLoss(self.gpu_ids)
+
+                if self.opt.flmdistloss:
+                    self.criterionLM = networks.LandmarksDistLoss(self.gpu_ids, self.opt)
+                else:
+                    self.criterionLM = networks.LandmarksLoss(self.gpu_ids)
 
             # Names so we can breakout loss
             self.loss_names = self.loss_filter('G_GAN','G_GAN_Feat','G_VGG','D_real','D_fake')
@@ -360,6 +367,7 @@ class Pix2PixHDModel(BaseModel):
         #ipdb.set_trace()
         arm1_mask=torch.FloatTensor((label.cpu().numpy()==11).astype(np.float)).cuda()
         arm2_mask=torch.FloatTensor((label.cpu().numpy()==13).astype(np.float)).cuda()
+        neck=torch.FloatTensor((label.cpu().numpy()==14).astype(np.float)).cuda()
         pre_clothes_mask=torch.FloatTensor((pre_clothes_mask.detach().cpu().numpy() > 0.5).astype(np.float)).cuda()
         clothes=clothes*pre_clothes_mask
 
@@ -456,8 +464,7 @@ class Pix2PixHDModel(BaseModel):
         skin_color=self.ger_average_color((arm1_mask+arm2_mask-arm2_mask*arm1_mask),(arm1_mask+arm2_mask-arm2_mask*arm1_mask)*real_image)
 
         if self.opt.neck:
-            neck = torch.FloatTensor((armlabel_map.cpu().numpy()==14).astype(np.float)).cuda()
-            img_hole_hand = img_fore * (1 - clothes_mask) * (1 - arm1_mask) * (1 - arm2_mask) + img_fore * arm1_mask * \
+            img_hole_hand = img_fore * (1 - clothes_mask) * (1 - arm1_mask) * (1 - arm2_mask) * (1 - neck) + img_fore * arm1_mask * \
                             (1 - mask) + img_fore * arm2_mask * (1 - mask) + img_fore * neck * (1 - mask)
         else:
             img_hole_hand = img_fore * (1 - clothes_mask) * (1 - arm1_mask) * (1 - arm2_mask) + img_fore * arm1_mask * \
@@ -536,7 +543,7 @@ class Pix2PixHDModel(BaseModel):
         loss_G3 = loss_G_VGG
 
         # LM loss
-        LM_loss = 0
+        LM_loss = torch.zeros(loss_G_VGG.shape).cuda()
         if self.opt.landmarks:
             LM_loss = self.criterionLM(warped_cloth_lm, person_lm) * self.opt.lambda_flm
 
@@ -574,6 +581,7 @@ class Pix2PixHDModel(BaseModel):
            ,L1_loss,style_loss,LM_loss,fake_cl,warped,clothes,CE_loss,rx*0.1,ry*0.1,cx*0.1,cy*0.1,rg*0.1,cg*0.1,
                      loss_G1, loss_G2, loss_G3, loss_G4, loss_D_real_pool, loss_D_fake_pool]
         else:
+
             return [self.loss_filter(loss_G_GAN, loss_G_GAN_Feat, loss_G_VGG, loss_D_real, loss_D_fake), fake_c,
                     comp_fake_c, dis_label
                 , L1_loss, style_loss, LM_loss, fake_cl, warped, clothes, CE_loss, rx * 0.1, ry * 0.1, cx * 0.1,

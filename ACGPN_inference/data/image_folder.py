@@ -33,13 +33,31 @@ def make_dataset_cloth(dir):
     f = dir.split('/')[-1].split('_')[-1]
     print (dir, f)
     dirs= os.listdir(dir)
-    
-    with open("./data/test_list.txt", "r") as file:    
+
+    with open("./data/test_list.txt", "r") as file:
         for img in file.readlines():
             path = os.path.join(dir, img.strip())
             #print(path)
             images.append(path)
-    
+
+    return images
+
+
+def make_dataset_cloth_lm(dir):
+    images = []
+    assert os.path.isdir(dir), '%s is not a valid directory' % dir
+
+    f = dir.split('/')[-1].split('_')[-1]
+    print (dir, f)
+    dirs = os.listdir(dir)
+
+    with open("./data/test_list.txt", "r") as file:
+        for img in file.readlines():
+            img = img.split('.')[0] + '.json'
+            path = os.path.join(dir, img.strip())
+            # print(path)
+            images.append(path)
+
     return images
 
 def make_dataset_test(dir):

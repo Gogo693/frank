@@ -1,4 +1,4 @@
-### Copyright (C) 2017 NVIDIA Corporation. All rights reserved. 
+### Copyright (C) 2017 NVIDIA Corporation. All rights reserved.
 ### Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 import torch
 import os
@@ -267,6 +267,27 @@ class LandmarksLoss(nn.Module):
 
         loss = 0
         loss += self.mse(lm_c_out, lm_p_gt)
+
+        return loss
+
+
+class LandmarksDistLoss(nn.Module):
+    def __init__(self, gpu_ids, opt):
+        super(LandmarksDistLoss, self).__init__()
+        self.mse = nn.MSELoss().cuda()
+        self.batchSize = opt.batchSize
+
+    def forward(self, x, y):
+        x_dist = torch.zeros((self.batchSize, 6, 2)).cuda()
+        y_dist = torch.zeros((self.batchSize, 6, 2)).cuda()
+
+        for bn, batch in enumerate(x):
+            for pn, point in enumerate(batch):
+                x_dist[bn][pn] = torch.mean((x[bn][pn] == 1).nonzero().float(), 0)
+                y_dist[bn][pn] = torch.mean((y[bn][pn] == 1).nonzero().float(), 0)
+
+        loss = 0
+        loss += self.mse(x_dist, y_dist)
 
         return loss
 

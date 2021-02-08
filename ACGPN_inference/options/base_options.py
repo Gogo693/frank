@@ -46,7 +46,11 @@ class BaseOptions():
         self.parser.add_argument('--n_blocks_global', type=int, default=4, help='number of residual blocks in the global generator network')
         self.parser.add_argument('--n_blocks_local', type=int, default=3, help='number of residual blocks in the local enhancer network')
         self.parser.add_argument('--n_local_enhancers', type=int, default=1, help='number of local enhancers to use')        
-        self.parser.add_argument('--niter_fix_global', type=int, default=0, help='number of epochs that we only train the outmost local enhancer')        
+        self.parser.add_argument('--niter_fix_global', type=int, default=0, help='number of epochs that we only train the outmost local enhancer')
+
+        # Inference options
+        self.parser.add_argument('--pairedinput', action='store_true',
+                                 help='if true, use paired input')
 
         # Fashion Landmarks options
         self.parser.add_argument('--mesh', action='store_true', help='Use mesh input')
@@ -87,6 +91,9 @@ class BaseOptions():
                                  help='if true, freeze G2 and G')
 
         self.parser.add_argument('--neck', action='store_true',
+                                 help='if true, freeze G2 and G')
+
+        self.parser.add_argument('--clothrepG2', action='store_true',
                                  help='if true, freeze G2 and G')
 
         self.initialized = True

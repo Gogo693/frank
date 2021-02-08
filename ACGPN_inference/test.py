@@ -193,7 +193,6 @@ def add_neck(ac_label, dense):
     print(new_label.shape)
 
     return new_label
-    
 '''
 
 def remove_bodyseg(seg):
@@ -284,6 +283,10 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         img_fore_wc = img_fore * mask_fore
         all_clothes_label = changearm(data['label'])
 
+        if opt.neck:
+            all_clothes_label = add_neck(label, data['vt_label'])
+            NC = 15
+
         #if opt.pants:
         all_clothes_label = add_misscloth(all_clothes_label, data['vt_label'])
 
@@ -296,11 +299,9 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         if opt.nobodyseg:
             all_clothes_label = remove_bodyseg(all_clothes_label)
 
-        '''
-        if opt.neck:
-            label = add_neck(label, data['dense'])
-            NC = 15
-        '''
+
+        # Use new vton seg
+        mask_fore = torch.FloatTensor((data['vt_label'].cpu().numpy() > 0).astype(np.int))
 
         ############## Forward Pass ######################
         losses, fake_image, real_image, input_label,L1_loss,style_loss,clothes_mask,CE_loss,rgb,alpha, \

@@ -184,13 +184,12 @@ class Pix2PixHDModel(BaseModel):
             else:
                 self.G1 = networks.define_Refine(human_dim + pose_dim + mesh_dim + dense_dim, 14, self.gpu_ids).eval()
 
-            
-            denseg2 = True
-            if denseg2:
+
+            if self.opt.clothrepG2:
                 cloth_lm_dim = 6
                 self.G2 = networks.define_Refine(human_dim + pose_dim + dense_dim + cloth_lm_dim, 1, self.gpu_ids).eval()
             else:
-                self.G2 = networks.define_Refine(human_dim + pose_dim + cloth_lm_dim, 1, self.gpu_ids).eval()
+                self.G2 = networks.define_Refine(human_dim + pose_dim + dense_dim + cloth_lm_dim, 1, self.gpu_ids).eval()
             self.G = networks.define_Refine(human_dim + 5 + mesh_g_dim, 3, self.gpu_ids).eval() # 24
 
         self.tanh = nn.Tanh()
@@ -369,20 +368,26 @@ class Pix2PixHDModel(BaseModel):
 
         dis_label_G1_out = dis_label
 
-        if self.opt.clothlmg2:
-            G2_in = torch.cat([pre_clothes_mask, cloth_rep, dis_label,pose,self.gen_noise(shape)], 1)
+        if self.opt.clothrepG2:
+            cloth_G2_in = cloth_rep
         else:
-            G2_in = torch.cat([pre_clothes_mask, clothes, dis_label,pose,self.gen_noise(shape)], 1)
+            cloth_G2_in = clothes
+
+
+        if self.opt.clothlmg2:
+            G2_in = torch.cat([pre_clothes_mask, cloth_G2_in, dis_label,pose,self.gen_noise(shape)], 1)
+        else:
+            G2_in = torch.cat([pre_clothes_mask, cloth_G2_in, dis_label,pose,self.gen_noise(shape)], 1)
 
         if self.opt.noopenpose:
-            G2_in = torch.cat([pre_clothes_mask, clothes, masked_label, dense, self.gen_noise(shape)], 1)
+            G2_in = torch.cat([pre_clothes_mask, cloth_G2_in, masked_label, dense, self.gen_noise(shape)], 1)
 
         if self.opt.denseplus:
             dense_g2 = True
             if dense_g2:
-                G2_in = torch.cat([pre_clothes_mask, cloth_rep, dis_label,pose,dense,self.gen_noise(shape)], 1)
+                G2_in = torch.cat([pre_clothes_mask, cloth_G2_in, dis_label,pose,dense,self.gen_noise(shape)], 1)
             else:
-                G2_in = torch.cat([pre_clothes_mask, clothes, dis_label,pose,self.gen_noise(shape)], 1)
+                G2_in = torch.cat([pre_clothes_mask, cloth_G2_in, dis_label,pose,self.gen_noise(shape)], 1)
 
 
         fake_cl = self.G2.refine(G2_in)
@@ -395,9 +400,14 @@ class Pix2PixHDModel(BaseModel):
         new_arm1_mask = torch.FloatTensor((armlabel_map.cpu().numpy() == 11).astype(np.float)).cuda()
         new_arm2_mask = torch.FloatTensor((armlabel_map.cpu().numpy() == 13).astype(np.float)).cuda()
         fake_cl_dis=fake_cl_dis*(1- new_arm1_mask)*(1-new_arm2_mask)
-        
+
+        ## mixed cloth fix dense + seg
+        mask_fore = dense[:,2,:,:] + mask_fore - dense[:,2,:,:] * mask_fore
+        mask_fore[mask_fore > 0] = 1
+
         correction = True
-        fakeclmod = False
+        fakeclmod = True
+
         if correction and fakeclmod:
             fake_cl_dis*=mask_fore
 
@@ -408,6 +418,9 @@ class Pix2PixHDModel(BaseModel):
         arm1_full = arm1_occ + (1 - clothes_mask) * arm1_mask
         arm2_full = arm2_occ + (1 - clothes_mask) * arm2_mask
 
+        ##arm1_full = new_arm1_mask
+        ##arm2_full = new_arm2_mask
+
         if correction:
             armlabel_map *= (1 - new_arm1_mask)
             armlabel_map *= (1 - new_arm2_mask)
@@ -416,6 +429,10 @@ class Pix2PixHDModel(BaseModel):
             armlabel_map*=(1-fake_cl_dis)
 
         dis_label=encode(armlabel_map,armlabel_map.shape)
+
+        noFixArmSeg = False
+        if noFixArmSeg:
+            dis_label = dis_label_G1_out
 
         fake_c, warped, warped_mask,warped_grid= self.Unet(clothes, fake_cl_dis, pre_clothes_mask,grid, cloth_rep)
 
@@ -432,7 +449,7 @@ class Pix2PixHDModel(BaseModel):
             pants_mask = torch.FloatTensor((label.cpu().numpy() == 8).astype(np.float)).cuda()
             img_hole_hand = img_fore * (1 - clothes_mask) * (1 - fake_cl_dis) #* (1 - pants_mask)
         else:
-            img_hole_hand = img_fore * (1 - clothes_mask) * occlude * (1 - fake_cl_dis)
+            img_hole_hand = img_fore * (1 - clothes_mask) * (1 - fake_cl_dis) * occlude
 
         # G_in = torch.cat([img_hole_hand, dis_label, fake_c, skin_color, self.gen_noise(shape)], 1)
 

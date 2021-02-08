@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-#PBS -l select=1:ncpus=20:ngpus=1        
+#PBS -l select=1:ncpus=2:ngpus=1        
 #PBS -l walltime=00:10:00                 
 #PBS -j oe                                     
-#PBS -N acgpn_basln_batch_deb                            
-#PBS -q debug                         
+#PBS -N unpair_acgpn_basln_batch_deb                            
+#PBS -q debug                        
 
 cd $PBS_O_WORKDIR                         
 
@@ -17,4 +17,4 @@ conda activate venv_vton
 
 unset CUDA_VISIBLE_DEVICES
 
-python test.py --dataroot ../../test_data/ --checkpoints_dir ../ACGPN_train/checkpoints/  --gpu_ids 0 --denseplus --nobodyseg --landmarks --name denseplus_flm_nobodyseg_g2dense
+python test.py --dataroot ../../test_data/ --checkpoints_dir ../ACGPN_train/checkpoints/  --gpu_ids 0 --denseplus --clothrepG2 --nobodyseg --landmarks --name denseplus_flm_nobodyseg_g2dense 

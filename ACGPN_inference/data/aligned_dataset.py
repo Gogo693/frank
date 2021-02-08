@@ -1,6 +1,6 @@
 import os.path
 from data.base_dataset import BaseDataset, get_params, get_transform, normalize
-from data.image_folder import make_dataset, make_dataset_test, make_dataset_cloth
+from data.image_folder import make_dataset, make_dataset_test, make_dataset_cloth, make_dataset_cloth_lm
 from PIL import Image
 import torch
 import json
@@ -46,8 +46,11 @@ class AlignedDataset(BaseDataset):
             dir_E = '_edge'
             self.dir_E = os.path.join(opt.dataroot, opt.phase + dir_E)
             #self.E_paths = sorted(make_dataset(self.dir_E))
-            self.E_paths = make_dataset_cloth(self.dir_E)
-            self.ER_paths = make_dataset_cloth(self.dir_E)
+            if self.opt.pairedinput:
+                self.E_paths = sorted(make_dataset(self.dir_E))
+            else:
+                self.E_paths = make_dataset_cloth(self.dir_E)
+                self.ER_paths = make_dataset_cloth(self.dir_E)
 
         ### input M (masks)
         if opt.isTrain or opt.use_encoded_image:
@@ -61,15 +64,21 @@ class AlignedDataset(BaseDataset):
             dir_MC = '_colormask'
             self.dir_MC = os.path.join(opt.dataroot, opt.phase + dir_MC)
             #self.MC_paths = sorted(make_dataset(self.dir_MC))
-            self.MC_paths = make_dataset_cloth(self.dir_MC)
-            self.MCR_paths = make_dataset_cloth(self.dir_MC)
+            if self.opt.pairedinput:
+                self.MC_paths = sorted(make_dataset(self.dir_MC))
+            else:
+                self.MC_paths = make_dataset_cloth(self.dir_MC)
+                self.MCR_paths = make_dataset_cloth(self.dir_MC)
         ### input C(color) cloth
         if opt.isTrain or opt.use_encoded_image:
             dir_C = '_color'
             self.dir_C = os.path.join(opt.dataroot, opt.phase + dir_C)
             #self.C_paths = sorted(make_dataset(self.dir_C))
-            self.C_paths = make_dataset_cloth(self.dir_C)
-            self.CR_paths = make_dataset_cloth(self.dir_C)
+            if self.opt.pairedinput:
+                self.C_paths = sorted(make_dataset(self.dir_C))
+            else:
+                self.C_paths = make_dataset_cloth(self.dir_C)
+                self.CR_paths = make_dataset_cloth(self.dir_C)
         # self.build_index(self.C_paths)
 
         ### input A test (label maps)
@@ -80,7 +89,7 @@ class AlignedDataset(BaseDataset):
 
         ### input VS (VTON Segmentation)
         if opt.isTrain or opt.use_encoded_image:
-            dir_VS = '_seg'
+            dir_VS = '_label_new'
             self.dir_VS = os.path.join(opt.dataroot, opt.phase + dir_VS)
             self.VS_paths = sorted(make_dataset(self.dir_VS))
             self.VSR_paths = make_dataset(self.dir_VS)
@@ -103,8 +112,13 @@ class AlignedDataset(BaseDataset):
         if opt.isTrain or opt.use_encoded_image:
             dir_CLM = '_landmarks_cloth'
             self.dir_CLM = os.path.join(opt.dataroot, opt.phase + dir_CLM)
-            self.CLM_paths = sorted(make_dataset(self.dir_CLM))
-            self.CLMR_paths = make_dataset(self.dir_CLM)
+            #self.CLM_paths = sorted(make_dataset(self.dir_CLM))
+            #self.CLMR_paths = make_dataset(self.dir_CLM)
+            if self.opt.pairedinput:
+                self.CLM_paths = sorted(make_dataset(self.dir_CLM))
+            else:
+                self.CLM_paths = make_dataset_cloth_lm(self.dir_CLM)
+                self.CLMR_paths = make_dataset_cloth_lm(self.dir_CLM)
 
     def random_sample(self,item):
         name = item.split('/')[-1]

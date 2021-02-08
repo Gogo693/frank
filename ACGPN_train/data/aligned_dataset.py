@@ -80,7 +80,7 @@ class AlignedDataset(BaseDataset):
 
         ### input VS (VTON Segmentation)
         if opt.isTrain or opt.use_encoded_image:
-            dir_VS = '_seg'
+            dir_VS = '_label_new'
             self.dir_VS = os.path.join(opt.dataroot, opt.phase + dir_VS)
             self.VS_paths = sorted(make_dataset(self.dir_VS))
             self.VSR_paths = make_dataset(self.dir_VS)

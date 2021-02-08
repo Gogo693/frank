@@ -4,6 +4,7 @@ beta1: 0.5
 checkpoints_dir: ../ACGPN_train/checkpoints/
 clothlmg2: False
 clothrep: False
+clothrepG2: True
 continue_train: False
 data_type: 32
 dataroot: ../../test_data/
@@ -54,6 +55,7 @@ noopenpose: False
 norm: instance
 num_D: 2
 output_nc: 3
+pairedinput: False
 pants: False
 phase: test
 pool_size: 0

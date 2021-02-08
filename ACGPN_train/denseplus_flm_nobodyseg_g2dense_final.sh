@@ -2,7 +2,7 @@
 #PBS -l select=1:ncpus=4:ngpus=4        
 #PBS -l walltime=24:00:00                 
 #PBS -j oe                                     
-#PBS -N nobodyseg_g2dense                            
+#PBS -N final_nobodyseg_g2dense                            
 #PBS -q gpu                         
 
 cd $PBS_O_WORKDIR                         
@@ -17,4 +17,4 @@ conda activate venv_vton
 
 unset CUDA_VISIBLE_DEVICES
 
-python train.py --dataroot ../../train_data/  --gpu_ids 0,1,2,3 --niter 10 --niter_decay 10 --batchSize 4 --denseplus --nobodyseg --landmarks --name denseplus_flm_nobodyseg_g2dense_final
+python train.py --dataroot ../../train_data/  --gpu_ids 0,1,2,3 --niter 10 --niter_decay 10 --batchSize 4 --denseplus --nobodyseg --landmarks --name denseplus_flm_nobodyseg_g2dense_final --continue_train --which_epoch 10

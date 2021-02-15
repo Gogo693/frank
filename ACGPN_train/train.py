@@ -218,22 +218,23 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         data['label']=data['label']*(1-t_mask)+t_mask*4
         mask_clothes=torch.FloatTensor((data['label'].cpu().numpy()==4).astype(np.int))
         # if opt.pants:
-        print(data['label'].shape)
+        ## with neck gives error
         #label = add_misscloth(data['label'], data['vt_label'])
+
         label = data['label']
-        print(label.shape)
 
         if opt.neck:
             all_clothes_label = changearmneck(data['label'], data['vt_label'])
-            all_clothes_label = add_misscloth(all_clothes_label, data['vt_label'])
+            #all_clothes_label = add_misscloth(all_clothes_label, data['vt_label'])
 
             label = addneck(label, data['vt_label'])
             NC = 15
-        print(label.shape)
 
         # else:
         #    label = data['label']
         mask_fore=torch.FloatTensor((label.cpu().numpy()>0).astype(np.int))
+        print(mask_fore.shape)
+        print(data['image'].shape)
         img_fore=data['image']*mask_fore
         img_fore_wc=img_fore*mask_fore
 

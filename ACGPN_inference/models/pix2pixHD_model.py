@@ -190,6 +190,8 @@ class Pix2PixHDModel(BaseModel):
                 self.G2 = networks.define_Refine(human_dim + pose_dim + dense_dim + cloth_lm_dim, 1, self.gpu_ids).eval()
             else:
                 self.G2 = networks.define_Refine(human_dim + pose_dim + dense_dim + cloth_lm_dim, 1, self.gpu_ids).eval()
+
+
             self.G = networks.define_Refine(human_dim + 5 + mesh_g_dim, 3, self.gpu_ids).eval() # 24
 
         self.tanh = nn.Tanh()

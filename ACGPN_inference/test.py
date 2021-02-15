@@ -12,6 +12,10 @@ import torchvision
 from torch.autograd import Variable
 from tensorboardX import SummaryWriter
 import cv2
+
+#from get_is import get_is
+#from get_ssim import get_ssim
+
 writer = SummaryWriter('runs/G1G2')
 SIZE=320
 NC=14
@@ -218,8 +222,14 @@ def changeseg(dense, seg):
 
 os.makedirs('sample',exist_ok=True)
 opt = TrainOptions().parse()
-os.makedirs('sample_' + opt.name, exist_ok = True)
-os.makedirs('results_' + opt.name, exist_ok = True)
+
+if opt.pairedinput:
+    paired_str = '_paired'
+else:
+    paired_str = '_unpaired'
+
+os.makedirs('sample_' + opt.name + paired_str, exist_ok = True)
+os.makedirs('results_' + opt.name + paired_str, exist_ok = True)
 iter_path = os.path.join(opt.checkpoints_dir, opt.name, 'iter.txt')
 if opt.continue_train:
     try:
@@ -397,7 +407,7 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
             rgb = (cv_img * 255).astype(np.uint8)
             bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
             n = str(step) + '.jpg'
-            cv2.imwrite('sample_' + opt.name + '/' + data['name'][0], bgr)
+            cv2.imwrite('sample_' + opt.name + paired_str + '/' + data['name'][0], bgr)
 
         combine = fake_image[0].float().cuda()
         # combine=c[0].squeeze()
@@ -408,7 +418,7 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
             rgb=(cv_img*255).astype(np.uint8)
             bgr=cv2.cvtColor(rgb,cv2.COLOR_RGB2BGR)
             n=str(step)+'.jpg'
-            cv2.imwrite('results_' + opt.name + '/' + data['name'][0],bgr)
+            cv2.imwrite('results_' + opt.name + paired_str + '/' + data['name'][0],bgr)
         step += 1
         #print(step)
         ### save latest model
@@ -441,3 +451,8 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
     ### linearly decay learning rate after certain iterations
     if epoch > opt.niter:
         model.module.update_learning_rate()
+
+#if opt.pairedinput:
+#    get_is('results_' + opt.name + paired_str + '/')
+#else:
+#    get_ssim('results_' + opt.name + paired_str + '/')

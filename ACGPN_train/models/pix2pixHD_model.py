@@ -402,6 +402,7 @@ class Pix2PixHDModel(BaseModel):
             G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, pose, self.gen_noise(shape)], dim=1)
 
         if self.opt.denseplus or self.opt.densestack or self.opt.denseone:
+            print(dense_g1.shape)
             G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense_g1, pose, self.gen_noise(shape)], dim=1)
 
         if self.opt.noopenpose:

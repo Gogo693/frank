@@ -56,7 +56,8 @@ class BaseOptions():
         self.parser.add_argument('--mesh', action='store_true', help='Use mesh input')
         self.parser.add_argument('--clothrep', action='store_true', help='Use cloth_rep input')
         self.parser.add_argument('--landmarks', action='store_true', help='Use landmarks')
-        self.parser.add_argument('--lambda_flm', type=int, default=1, help='Hyperparam for flm')
+        self.parser.add_argument('--lambda_flm', type=float, default=1, help='Hyperparam for flm')
+        self.parser.add_argument('--nocord', action='store_true', help='No use cord constraint')
 
         self.parser.add_argument('--mesh_g', action='store_true',
                                  help='if true, use mesh in last generator')

@@ -151,10 +151,15 @@ class Pix2PixHDModel(BaseModel):
 
         #self.G1 = networks.define_Refine(37, 14, self.gpu_ids)
 
-        if self.opt.neck:
-            self.G1 = networks.define_Refine(human_dim + pose_dim + mesh_dim + dense_dim, 15, self.gpu_ids)
+        if self.opt.densearms:
+            dense_g1_dim = 2
         else:
-            self.G1 = networks.define_Refine(human_dim + pose_dim + mesh_dim + dense_dim, 14, self.gpu_ids)
+            dense_g1_dim = dense_dim
+
+        if self.opt.neck:
+            self.G1 = networks.define_Refine(human_dim + pose_dim + mesh_dim + dense_g1_dim, 15, self.gpu_ids)
+        else:
+            self.G1 = networks.define_Refine(human_dim + pose_dim + mesh_dim + dense_g1_dim, 14, self.gpu_ids)
 
 
         if self.opt.transfer:
@@ -185,9 +190,9 @@ class Pix2PixHDModel(BaseModel):
             netD_input_nc = input_nc + opt.output_nc
             netB_input_nc = opt.output_nc * 2
             if self.opt.neck:
-                self.D1=self.get_D(17 + pose_dim + 3 + 15 + mesh_dim + dense_dim,opt)
+                self.D1=self.get_D(17 + pose_dim + 3 + 15 + mesh_dim + dense_g1_dim,opt)
             else:
-                self.D1=self.get_D(16 + pose_dim + 3 + 14 + mesh_dim + dense_dim,opt)
+                self.D1=self.get_D(16 + pose_dim + 3 + 14 + mesh_dim + dense_g1_dim,opt)
 
             ##self.D1 = self.get_D(34 + 14 + 3, opt)
 
@@ -360,7 +365,7 @@ class Pix2PixHDModel(BaseModel):
         return noise.cuda()
     #data['label'],data['edge'],img_fore.cuda()),Variable(mask_clothes, ,Variable(data['color'].cuda()),Variable(all_clothes_label.cuda()))
     
-    def forward(self,label,pre_clothes_mask,img_fore,clothes_mask,clothes,all_clothes_label,real_image,pose,mask, person_lm, cloth_lm, cloth_rep, mesh, dense):
+    def forward(self,label,pre_clothes_mask,img_fore,clothes_mask,clothes,all_clothes_label,real_image,pose,mask, person_lm, cloth_lm, cloth_rep, mesh, dense, densearms):
         # Encode Inputs
         #ipdb.set_trace()
         input_label,masked_label,all_clothes_label= self.encode_input(label,clothes_mask,all_clothes_label)
@@ -371,7 +376,6 @@ class Pix2PixHDModel(BaseModel):
         pre_clothes_mask=torch.FloatTensor((pre_clothes_mask.detach().cpu().numpy() > 0.5).astype(np.float)).cuda()
         clothes=clothes*pre_clothes_mask
 
-        dense = dense
 
         #clothes_mask -> target
         #pre_clothes_mask -> source
@@ -387,16 +391,21 @@ class Pix2PixHDModel(BaseModel):
         #print(shape)
         #print(mesh.shape)
 
+        if self.opt.densearms:
+            dense_g1 = densearms
+        else:
+            dense_g1 = dense
+
         if self.opt.mesh:
             G1_in = torch.cat([pre_clothes_mask,clothes,all_clothes_label,pose,self.gen_noise(shape), mesh],dim=1)
         else:
             G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, pose, self.gen_noise(shape)], dim=1)
 
         if self.opt.denseplus or self.opt.densestack:
-            G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense, pose, self.gen_noise(shape)], dim=1)
+            G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense_g1, pose, self.gen_noise(shape)], dim=1)
 
         if self.opt.noopenpose:
-            G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense, self.gen_noise(shape)], dim=1)
+            G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense_g1, self.gen_noise(shape)], dim=1)
 
 
         arm_label=self.G1.refine(G1_in)

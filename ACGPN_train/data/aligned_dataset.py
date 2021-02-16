@@ -233,6 +233,7 @@ class AlignedDataset(BaseDataset):
         # VS_tensor = transform_A(VS) * 255.0
         VS_tensor = np.array(VS)
         VS_tensor = torch.from_numpy(VS_tensor)  # * 255.0
+        VS_tensor = VS_tensor.unsqueeze(0)
 
         ## Mesh
         S_path = self.S_paths[test]
@@ -304,12 +305,12 @@ class AlignedDataset(BaseDataset):
 
             for val in range(3, 23):
                 if val in l_arm_values:
-                    dense_left[dense_left == val] = 255
+                    dense_left[dense_left == val] = 1
                 else:
                     dense_left[dense_left == val] = 0
 
                 if val in r_arm_values:
-                    dense_right[dense_right == val] = 255
+                    dense_right[dense_right == val] = 1
                 else:
                     dense_right[dense_right == val] = 0
 
@@ -322,7 +323,7 @@ class AlignedDataset(BaseDataset):
             dense[0] = dense_left
             dense[1] = dense_right
 
-            D_tensor = dense
+            DA_tensor = dense
 
         ## Person Landmarks
         PLM_path = self.PLM_paths[test]
@@ -403,6 +404,7 @@ class AlignedDataset(BaseDataset):
                            'pose':P_tensor,
                            'mesh': S_tensor,
                            'dense': D_tensor,
+                           'densearms': DA_tensor,
                            'cloth_lm': CLM_tensor,
                            'person_lm': PLM_tensor,
                            'cloth_representation': cloth_rep,

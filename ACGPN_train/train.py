@@ -233,8 +233,6 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         # else:
         #    label = data['label']
         mask_fore=torch.FloatTensor((label.cpu().numpy()>0).astype(np.int))
-        print(mask_fore.shape)
-        print(data['image'].shape)
         img_fore=data['image']*mask_fore
         img_fore_wc=img_fore*mask_fore
 
@@ -293,7 +291,8 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
                       Variable(data['cloth_lm'].cuda()),
                       Variable(data['cloth_representation'].cuda()),
                       Variable(data['mesh'].cuda()),
-                      Variable(data['dense'].cuda())
+                      Variable(data['dense'].cuda()),
+                      Variable(data['densearms'].cuda())
                       )
         else:
             ############## Forward Pass ######################
@@ -311,7 +310,8 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
                       Variable(data['cloth_lm'].cuda()),
                       Variable(data['cloth_representation'].cuda()),
                       Variable(data['mesh'].cuda()),
-                      Variable(data['dense'].cuda())
+                      Variable(data['dense'].cuda()),
+                      Variable(data['densearms'].cuda())
                       )
 
 
@@ -323,7 +323,11 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         loss_D = (loss_dict['D_fake'] + loss_dict['D_real']) * 0.5
 
         if opt.landmarks:
-            loss_G = loss_dict['G_GAN']+loss_dict.get('G_GAN_Feat',0)+loss_dict.get('G_VGG',0)+torch.mean(L1_loss+CE_loss+rx+ry+cx+cy+rg+cg+LM_loss)
+            if opt.nocord:
+                loss_G = loss_dict['G_GAN'] + loss_dict.get('G_GAN_Feat', 0) + loss_dict.get('G_VGG', 0) + torch.mean(
+                    L1_loss + CE_loss + LM_loss)
+            else:
+                loss_G = loss_dict['G_GAN']+loss_dict.get('G_GAN_Feat',0)+loss_dict.get('G_VGG',0)+torch.mean(L1_loss+CE_loss+rx+ry+cx+cy+rg+cg+LM_loss)
         else:
             loss_G = loss_dict['G_GAN']+loss_dict.get('G_GAN_Feat',0)+loss_dict.get('G_VGG',0)+torch.mean(L1_loss+CE_loss+rx+ry+cx+cy+rg+cg)
 

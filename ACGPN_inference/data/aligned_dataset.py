@@ -296,6 +296,7 @@ class AlignedDataset(BaseDataset):
 
             D_tensor = dense
 
+        DA_tensor = torch.zeros(D_tensor.shape)
         if self.opt.densearms:
             D = Image.open(D_path).convert('RGB')
             d = np.array(D)
@@ -315,12 +316,12 @@ class AlignedDataset(BaseDataset):
 
             for val in range(3, 23):
                 if val in l_arm_values:
-                    dense_left[dense_left == val] = 255
+                    dense_left[dense_left == val] = 1
                 else:
                     dense_left[dense_left == val] = 0
 
                 if val in r_arm_values:
-                    dense_right[dense_right == val] = 255
+                    dense_right[dense_right == val] = 1
                 else:
                     dense_right[dense_right == val] = 0
 
@@ -333,7 +334,7 @@ class AlignedDataset(BaseDataset):
             dense[0] = dense_left
             dense[1] = dense_right
 
-            D_tensor = dense
+            DA_tensor = dense
 
         ## Cloth Landmarks
         CLM_path = self.CLM_paths[test]
@@ -384,6 +385,7 @@ class AlignedDataset(BaseDataset):
                            'name_c': name_c,
                            'mesh': S_tensor,
                            'dense': D_tensor,
+                           'densearms': DA_tensor,
                            'cloth_lm': CLM_tensor,
                            'cloth_representation': cloth_rep,
                            'vt_label': VS_tensor

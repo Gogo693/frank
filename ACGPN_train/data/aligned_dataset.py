@@ -286,6 +286,7 @@ class AlignedDataset(BaseDataset):
 
             D_tensor = dense
 
+        DA_tensor = torch.zeros(D_tensor.shape)
         if self.opt.densearms:
             D = Image.open(D_path).convert('RGB')
             d = np.array(D)

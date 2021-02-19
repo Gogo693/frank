@@ -332,6 +332,7 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
                   Variable(data['cloth_representation'].cuda()),
                   Variable(data['mesh'].cuda()),
                   Variable(data['dense'].cuda()),
+                  Variable(data['densearms'].cuda()),
                   Variable(mask_fore.cuda()))
 
         # sum per device losses

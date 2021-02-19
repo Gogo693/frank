@@ -179,10 +179,16 @@ class Pix2PixHDModel(BaseModel):
 
         with torch.no_grad():
             self.Unet = networks.define_UnetMask(self.opt, 4, self.gpu_ids).eval()
-            if self.opt.neck:
-                self.G1 = networks.define_Refine(human_dim + pose_dim + mesh_dim + dense_dim, 15, self.gpu_ids).eval()
+
+            if self.opt.densearms:
+                dense_g1_dim = 2
             else:
-                self.G1 = networks.define_Refine(human_dim + pose_dim + mesh_dim + dense_dim, 14, self.gpu_ids).eval()
+                dense_g1_dim = dense_dim
+
+            if self.opt.neck:
+                self.G1 = networks.define_Refine(human_dim + pose_dim + mesh_dim + dense_g1_dim, 15, self.gpu_ids).eval()
+            else:
+                self.G1 = networks.define_Refine(human_dim + pose_dim + mesh_dim + dense_g1_dim, 14, self.gpu_ids).eval()
 
 
             if self.opt.clothrepG2:
@@ -343,16 +349,21 @@ class Pix2PixHDModel(BaseModel):
 
         # G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, pose, self.gen_noise(shape), mesh], dim=1)
 
+        if self.opt.densearms:
+            dense_g1 = densearms
+        else:
+            dense_g1 = dense
+
         if self.opt.mesh:
             G1_in = torch.cat([pre_clothes_mask,clothes,all_clothes_label,pose,self.gen_noise(shape), mesh],dim=1)
         else:
             G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, pose, self.gen_noise(shape)], dim=1)
 
-        if self.opt.denseplus or self.opt.densestack:
-            G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense, pose, self.gen_noise(shape)], dim=1)
+        if self.opt.denseplus or self.opt.densestack or self.opt.densearms:
+            G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense_g1, pose, self.gen_noise(shape)], dim=1)
 
         if self.opt.noopenpose:
-            G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense, self.gen_noise(shape)], dim=1)
+            G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense_g1, self.gen_noise(shape)], dim=1)
 
         arm_label = self.G1.refine(G1_in)
 

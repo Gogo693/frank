@@ -337,7 +337,7 @@ class Pix2PixHDModel(BaseModel):
         out+=smaller*fake_c
         out+=(1-mask)*fake_img
         return out
-    def forward(self, label, pre_clothes_mask, img_fore, clothes_mask, clothes, all_clothes_label, real_image, pose,grid,cloth_rep, mesh, dense, mask_fore):
+    def forward(self, label, pre_clothes_mask, img_fore, clothes_mask, clothes, all_clothes_label, real_image, pose,grid,cloth_rep, mesh, dense, densearms, mask_fore):
         # Encode Inputs
         input_label, masked_label, all_clothes_label = self.encode_input(label, clothes_mask, all_clothes_label)
         arm1_mask = torch.FloatTensor((label.cpu().numpy() == 11).astype(np.float)).cuda()

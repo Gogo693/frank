@@ -96,6 +96,9 @@ class BaseOptions():
         self.parser.add_argument('--clothrepG2', action='store_true',
                                  help='if true, freeze G2 and G')
 
+        self.parser.add_argument('--mixfix', action='store_true',
+                                 help='if true, freeze G2 and G')
+
         self.initialized = True
 
     def parse(self, save=True):

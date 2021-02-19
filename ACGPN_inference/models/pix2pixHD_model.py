@@ -415,8 +415,9 @@ class Pix2PixHDModel(BaseModel):
         fake_cl_dis=fake_cl_dis*(1- new_arm1_mask)*(1-new_arm2_mask)
 
         ## mixed cloth fix dense + seg
-        mask_fore = dense[:,2,:,:] + mask_fore - dense[:,2,:,:] * mask_fore
-        mask_fore[mask_fore > 0] = 1
+        if self.opt.mixfix:
+            mask_fore = dense[:,2,:,:] + mask_fore - dense[:,2,:,:] * mask_fore
+            mask_fore[mask_fore > 0] = 1
 
         correction = True
         fakeclmod = True

@@ -233,7 +233,7 @@ class AlignedDataset(BaseDataset):
         # VS_tensor = transform_A(VS) * 255.0
         VS_tensor = np.array(VS)
         VS_tensor = torch.from_numpy(VS_tensor)  # * 255.0
-        VS_tensor = VS_tensor.unsqueeze(0)
+        #VS_tensor = VS_tensor.unsqueeze(0)
 
         ## Mesh
         S_path = self.S_paths[test]
@@ -286,7 +286,7 @@ class AlignedDataset(BaseDataset):
 
             D_tensor = dense
 
-        DA_tensor = torch.zeros(D_tensor.shape)
+        DA_tensor = torch.zeros(D_tensor)
         if self.opt.densearms:
             D = Image.open(D_path).convert('RGB')
             d = np.array(D)

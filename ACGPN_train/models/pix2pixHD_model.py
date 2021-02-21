@@ -411,12 +411,15 @@ class Pix2PixHDModel(BaseModel):
 
         arm_label=self.G1.refine(G1_in)
         arm_label=self.sigmoid(arm_label)
-        
+
         print(arm_label.shape)
         print(input_label.shape)
 
         #loss_G1 = self.cross_entropy2d(arm_label, (label * (1 - clothes_mask)).transpose(0, 1)[0].long()) *10
-        loss_G1 = self.cross_entropy2d(arm_label, (input_label).long()) * 10
+        loss_G1 = F.cross_entropy(
+            arm_label, input_label.long(), weight=None, size_average=True, ignore_index=250
+        ) * 10
+        #loss_G1 = self.cross_entropy2d(arm_label, (input_label).long()) * 10
         CE_loss = 0
         CE_loss += loss_G1
 

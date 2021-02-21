@@ -291,6 +291,36 @@ class LandmarksDistLoss(nn.Module):
 
         return loss
 
+'''
+class ContinuityLoss(nn.Module):
+    def __init__(self, gpu_ids, opt):
+        super(LandmarksDistLoss, self).__init__()
+        self.batchSize = opt.batchSize
+
+    def forward(self, x, y):
+        loss_hpy = torch.nn.L1Loss(size_average=True).cuda()
+        loss_hpz = torch.nn.L1Loss(size_average=True).cuda()
+
+        HPy_target = torch.zeros(x.shape[0] - 1, y.shape[1], 14)
+        HPz_target = torch.zeros(x.shape[0], y.shape[1] - 1, 14)
+
+        HPy_target = HPy_target.cuda()
+        HPz_target = HPz_target.cuda()
+
+        #output = x.permute(1, 2, 0).contiguous().view(-1, 15)
+
+        #outputHP = output.reshape((im.shape[0], im.shape[1], args.nChannel))
+        HPy = outputHP[1:, :, :] - outputHP[0:-1, :, :]
+        HPz = outputHP[:, 1:, :] - outputHP[:, 0:-1, :]
+
+        HPy = outputHP[:, 1:, :] - outputHP[:, 0:-1, :]
+        HPz = outputHP[:, , 1:] - outputHP[:, :, 0:-1]
+
+        lhpy = loss_hpy(HPy, HPy_target)
+        lhpz = loss_hpz(HPz, HPz_target)
+
+        return lhpy + lhpz
+'''
 
 ##############################################################################
 # Generator

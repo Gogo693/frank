@@ -96,6 +96,10 @@ def changearmneck(old_label, vt_label):
 
 def addneck(old_label, vt_label):
     label = old_label
+    print(label.shape)
+    print(torch.max(label))
+    print(vt_label.shape)
+    print(torch.max(vt_label))
     neck = torch.FloatTensor((vt_label.cpu().numpy() == 20).astype(np.int))
     label = label * (1 - neck) + neck * 14
     return label
@@ -373,7 +377,6 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         
         ### display output images
         if step % 10 == 0:
-            print(data['vt_label'].shape)
             l = torch.cat([label,label,label],1).cuda()
             a = generate_label_color(generate_label_plain(input_label)).float().cuda()
             b = real_image.float().cuda()
@@ -384,7 +387,7 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
             z = torch.cat([all_clothes_label, all_clothes_label, all_clothes_label],1).cuda()
             #z = generate_label_color(generate_label_plain(all_clothes_label)).float().cuda()
             #combine = torch.cat([l[0], a[0],b[0],c[0],d[0],e[0], z[0]], 2).squeeze()
-            combine = torch.cat([z[0], a[0], b[0], c[0], d[0], e[0], f[0]], 2).squeeze()
+            combine = torch.cat([z[0], l[0], a[0], b[0], c[0], d[0], e[0], f[0]], 2).squeeze()
             cv_img=(combine.permute(1,2,0).detach().cpu().numpy()+1)/2
             writer.add_image('combine', (combine.data + 1) / 2.0, step)
             rgb=(cv_img*255).astype(np.uint8)

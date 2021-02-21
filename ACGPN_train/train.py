@@ -102,6 +102,7 @@ def addneck(old_label, vt_label):
     print(torch.max(vt_label))
     neck = torch.FloatTensor((vt_label.cpu().numpy() == 20).astype(np.int))
     label = label * (1 - neck) + neck * 14
+    print(torch.max(label))
     return label
 
 def changeseg(dense, seg):

@@ -18,7 +18,8 @@ import ipdb
 
 
 SIZE=320
-NC=14
+NC=15
+NC=15
 def generate_label_plain(inputs):
     size = inputs.size()
     pred_batch = []

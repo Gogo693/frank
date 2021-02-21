@@ -77,9 +77,9 @@ def changearm(old_label):
     arm1=torch.FloatTensor((data['label'].cpu().numpy()==11).astype(np.int))
     arm2=torch.FloatTensor((data['label'].cpu().numpy()==13).astype(np.int))
     noise=torch.FloatTensor((data['label'].cpu().numpy()==7).astype(np.int))
-    label=label*(1-arm1)+arm1*40
-    label=label*(1-arm2)+arm2*40
-    label=label*(1-noise)+noise*40
+    label=label*(1-arm1)+arm1*4
+    label=label*(1-arm2)+arm2*4
+    label=label*(1-noise)+noise*4
     return label
 
 def changearmneck(old_label, vt_label):
@@ -91,7 +91,7 @@ def changearmneck(old_label, vt_label):
     label=label*(1-arm1)+arm1*4
     label=label*(1-arm2)+arm2*4
     label=label*(1-noise)+noise*4
-    label = label * (1 - neck) + neck * 50
+    label = label * (1 - neck) + neck * 4
     return label
 
 def addneck(old_label, vt_label):

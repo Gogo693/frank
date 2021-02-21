@@ -368,7 +368,7 @@ class Pix2PixHDModel(BaseModel):
     def forward(self,label,pre_clothes_mask,img_fore,clothes_mask,clothes,all_clothes_label,real_image,pose,mask, person_lm, cloth_lm, cloth_rep, mesh, dense, densearms):
         # Encode Inputs
         #ipdb.set_trace()
-        input_label,masked_label,all_clothes_label= self.encode_input(label,clothes_mask,all_clothes_label)
+        input_label,masked_label,all_clothes_label= self.encode_input(label * (1-clothes_mask),clothes_mask,all_clothes_label)
         #ipdb.set_trace()
         arm1_mask=torch.FloatTensor((label.cpu().numpy()==11).astype(np.float)).cuda()
         arm2_mask=torch.FloatTensor((label.cpu().numpy()==13).astype(np.float)).cuda()
@@ -411,9 +411,12 @@ class Pix2PixHDModel(BaseModel):
 
         arm_label=self.G1.refine(G1_in)
         arm_label=self.sigmoid(arm_label)
-        print(label.shape)
+        
         print(arm_label.shape)
-        loss_G1 = self.cross_entropy2d(arm_label, (label * (1 - clothes_mask)).transpose(0, 1)[0].long()) *10
+        print(input_label.shape)
+
+        #loss_G1 = self.cross_entropy2d(arm_label, (label * (1 - clothes_mask)).transpose(0, 1)[0].long()) *10
+        loss_G1 = self.cross_entropy2d(arm_label, (input_label).long()) * 10
         CE_loss = 0
         CE_loss += loss_G1
 

@@ -372,7 +372,7 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
 
         
         ### display output images
-        if step % 1000 == 0:
+        if step % 10 == 0:
             l = torch.cat([label,label,label],1).cuda()
             a = generate_label_color(generate_label_plain(input_label)).float().cuda()
             b = real_image.float().cuda()

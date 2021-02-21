@@ -386,7 +386,7 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
             e=warped
             f=refined
             z = torch.cat([all_clothes_label, all_clothes_label, all_clothes_label],1).cuda()
-            x = torch.cat([mask_clothes, mask_clothes, mask_clothes], 1)
+            x = torch.cat([mask_clothes, mask_clothes, mask_clothes], 1).cuda()
             #z = generate_label_color(generate_label_plain(all_clothes_label)).float().cuda()
             #combine = torch.cat([l[0], a[0],b[0],c[0],d[0],e[0], z[0]], 2).squeeze()
             combine = torch.cat([z[0], l[0], x[0], a[0], b[0], c[0], d[0], e[0], f[0]], 2).squeeze()

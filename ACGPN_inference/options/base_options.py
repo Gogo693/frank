@@ -56,6 +56,7 @@ class BaseOptions():
         self.parser.add_argument('--mesh', action='store_true', help='Use mesh input')
         self.parser.add_argument('--clothrep', action='store_true', help='Use cloth_rep input')
         self.parser.add_argument('--landmarks', action='store_true', help='Use landmarks')
+        self.parser.add_argument('--nocord', action='store_true', help='No use cord constraint')
         self.parser.add_argument('--transfer', action='store_true', help='Use landmarks')
         self.parser.add_argument('--mesh_g', action='store_true',
                                  help='if true, use mesh in last generator')
@@ -97,6 +98,24 @@ class BaseOptions():
                                  help='if true, freeze G2 and G')
 
         self.parser.add_argument('--mixfix', action='store_true',
+                                 help='if true, freeze G2 and G')
+
+        self.parser.add_argument('--continuity', action='store_true',
+                                 help='if true, freeze G2 and G')
+
+        self.parser.add_argument('--warplm', action='store_true',
+                                 help='if true, freeze G2 and G')
+
+        self.parser.add_argument('--noclfix', action='store_true',
+                                 help='if true, freeze G2 and G')
+
+        self.parser.add_argument('--mod', type=str, default='',
+                                 help='name of the experiment. It decides where to store samples and models')
+
+        self.parser.add_argument('--nocmask', action='store_true',
+                                 help='if true, freeze G2 and G')
+
+        self.parser.add_argument('--noinpaint', action='store_true',
                                  help='if true, freeze G2 and G')
 
         self.initialized = True

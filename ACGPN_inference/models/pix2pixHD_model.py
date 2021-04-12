@@ -71,8 +71,11 @@ def morpho_smaller(mask,iter,bigger=True):
     return new
 
 
-def encode(label_map, size):
-    label_nc = 14
+def encode(self, label_map, size):
+    if self.opt.neck:
+        label_nc=15
+    else:
+        label_nc=14
     oneHot_size = (size[0], label_nc, size[2], size[3])
     input_label = torch.cuda.FloatTensor(torch.Size(oneHot_size)).zero_()
     input_label = input_label.scatter_(1, label_map.data.long().cuda(), 1.0)
@@ -268,11 +271,10 @@ class Pix2PixHDModel(BaseModel):
     def encode_input(self, label_map, clothes_mask, all_clothes_label):
 
         size = label_map.size()
-        if self.opt.nobodyseg:
-            l_num = 13
+        if self.opt.neck:
+            l_num = 15
         else:
             l_num = 14
-        l_num = 14
         oneHot_size = (size[0], l_num, size[2], size[3])
         input_label = torch.cuda.FloatTensor(torch.Size(oneHot_size)).zero_()
         input_label = input_label.scatter_(1, label_map.data.long().cuda(), 1.0)
@@ -337,13 +339,17 @@ class Pix2PixHDModel(BaseModel):
         out+=smaller*fake_c
         out+=(1-mask)*fake_img
         return out
-    def forward(self, label, pre_clothes_mask, img_fore, clothes_mask, clothes, all_clothes_label, real_image, pose,grid,cloth_rep, mesh, dense, densearms, mask_fore):
+    def forward(self, label, pre_clothes_mask, img_fore, clothes_mask, clothes, all_clothes_label, real_image, pose,grid, person_lm,cloth_rep, mesh, dense, densearms, t_dense, mask_fore):
         # Encode Inputs
+        keep_label = all_clothes_label
         input_label, masked_label, all_clothes_label = self.encode_input(label, clothes_mask, all_clothes_label)
         arm1_mask = torch.FloatTensor((label.cpu().numpy() == 11).astype(np.float)).cuda()
         arm2_mask = torch.FloatTensor((label.cpu().numpy() == 13).astype(np.float)).cuda()
+        neck_mask = torch.FloatTensor((label.cpu().numpy() == 14).astype(np.float)).cuda()
         pre_clothes_mask=torch.FloatTensor((pre_clothes_mask.detach().cpu().numpy() > 0.5).astype(np.float)).cuda()
-        clothes = clothes * pre_clothes_mask
+
+        if not self.opt.nocmask:
+            clothes=clothes*pre_clothes_mask
 
         shape = pre_clothes_mask.shape
 
@@ -412,15 +418,32 @@ class Pix2PixHDModel(BaseModel):
 
         new_arm1_mask = torch.FloatTensor((armlabel_map.cpu().numpy() == 11).astype(np.float)).cuda()
         new_arm2_mask = torch.FloatTensor((armlabel_map.cpu().numpy() == 13).astype(np.float)).cuda()
-        fake_cl_dis=fake_cl_dis*(1- new_arm1_mask)*(1-new_arm2_mask)
+
+        if self.opt.neck:
+            new_neck_mask = torch.FloatTensor((armlabel_map.cpu().numpy() == 14).astype(np.float)).cuda()
+            fake_cl_dis = fake_cl_dis * (1 - new_arm1_mask) * (1 - new_arm2_mask) * (1 - new_neck_mask)
+        else:
+            fake_cl_dis=fake_cl_dis*(1- new_arm1_mask)*(1-new_arm2_mask)
+
+        ## fake_cl_dis=fake_cl_dis*(1- new_arm1_mask)*(1-new_arm2_mask)
 
         ## mixed cloth fix dense + seg
         if self.opt.mixfix:
-            mask_fore = dense[:,2,:,:] + mask_fore - dense[:,2,:,:] * mask_fore
+            d_mask = dense[:,2,:,:]
+            mask_fore = d_mask + mask_fore - d_mask * mask_fore
             mask_fore[mask_fore > 0] = 1
 
+            #try to perfect segmentation
+            #pants = mask_fore
+            #pants[pants != 8] = 0
+            #mask_fore = mask_fore - pants
+
         correction = True
-        fakeclmod = True
+
+        if self.opt.noclfix:
+            fakeclmod = False
+        else:
+            fakeclmod = True
 
         if correction and fakeclmod:
             fake_cl_dis*=mask_fore
@@ -432,23 +455,44 @@ class Pix2PixHDModel(BaseModel):
         arm1_full = arm1_occ + (1 - clothes_mask) * arm1_mask
         arm2_full = arm2_occ + (1 - clothes_mask) * arm2_mask
 
+        ## arm1_full = new_arm1_mask
+        ## arm2_full = new_arm2_mask
+
+
+        if self.opt.neck:
+            neck_occ = clothes_mask * new_neck_mask
+            #bigger_neck_occ = morpho(neck_occ, 3)
+            ## bigger_neck_occ = neck_occ
+            #neck_full = neck_occ + (1 - clothes_mask) * neck_mask
+
+            neck_full = new_neck_mask
+
+
         ##arm1_full = new_arm1_mask
         ##arm2_full = new_arm2_mask
 
         if correction:
             armlabel_map *= (1 - new_arm1_mask)
             armlabel_map *= (1 - new_arm2_mask)
+
+            if self.opt.neck:
+                armlabel_map *= (1 - new_neck_mask)
+
             armlabel_map = armlabel_map * (1 - arm1_full) + arm1_full * 11
             armlabel_map = armlabel_map * (1 - arm2_full) + arm2_full * 13
+
+            if self.opt.neck:
+                armlabel_map = armlabel_map * (1 - neck_full) + neck_full * 14
+
             armlabel_map*=(1-fake_cl_dis)
 
-        dis_label=encode(armlabel_map,armlabel_map.shape)
+        dis_label=encode(self, armlabel_map,armlabel_map.shape)
 
         noFixArmSeg = False
         if noFixArmSeg:
             dis_label = dis_label_G1_out
 
-        fake_c, warped, warped_mask,warped_grid= self.Unet(clothes, fake_cl_dis, pre_clothes_mask,grid, cloth_rep)
+        fake_c, warped, warped_mask,warped_grid= self.Unet(clothes, fake_cl_dis, pre_clothes_mask,grid, cloth_rep, person_lm)
 
         mask=fake_c[:,3,:,:]
         mask=self.sigmoid(mask)*fake_cl_dis
@@ -456,22 +500,37 @@ class Pix2PixHDModel(BaseModel):
         fake_c_Uout = fake_c
         mask_Uout = mask
         fake_c=fake_c*(1-mask)+mask*warped
+
         skin_color = self.ger_average_color((arm1_mask + arm2_mask - arm2_mask * arm1_mask),
                                             (arm1_mask + arm2_mask - arm2_mask * arm1_mask) * real_image)
+
+        #skin_color = self.ger_average_color((arm1_mask + arm2_mask + neck_mask - arm2_mask * arm1_mask * neck_mask),
+        #                                    (arm1_mask + arm2_mask + neck_mask - arm2_mask * arm1_mask * neck_mask) * real_image)
+
         occlude = (1 - bigger_arm1_occ * (arm2_mask + arm1_mask+clothes_mask)) * (1 - bigger_arm2_occ * (arm2_mask + arm1_mask+clothes_mask))
+        ##occlude = (1 - bigger_arm1_occ * (arm2_mask + arm1_mask + clothes_mask + neck_mask)) * \
+        ##          (1 - bigger_arm2_occ * (arm2_mask + arm1_mask + clothes_mask + neck_mask)) * \
+        ##          (1 - bigger_neck_occ * (arm2_mask + arm1_mask + clothes_mask + neck_mask))
+
         if not correction:
             pants_mask = torch.FloatTensor((label.cpu().numpy() == 8).astype(np.float)).cuda()
             img_hole_hand = img_fore * (1 - clothes_mask) * (1 - fake_cl_dis) #* (1 - pants_mask)
         else:
             img_hole_hand = img_fore * (1 - clothes_mask) * (1 - fake_cl_dis) * occlude
 
+        if self.opt.noinpaint:
+            img_hole_hand = img_fore * (1 - clothes_mask) * (1 - fake_cl_dis) * (1-arm1_mask) * (1-arm2_mask) * (1-neck_mask)
+
+
+
         # G_in = torch.cat([img_hole_hand, dis_label, fake_c, skin_color, self.gen_noise(shape)], 1)
 
+        '''
         if self.opt.neck:
             neck = torch.FloatTensor((armlabel_map.cpu().numpy()==14).astype(np.float)).cuda()
             img_hole_hand = img_fore * (1 - clothes_mask) * (1 - arm1_mask) * (1 - arm2_mask) + img_fore * arm1_mask * \
                             (1 - mask) + img_fore * arm2_mask * (1 - mask) + img_fore * neck * (1 - mask)
-
+        '''
 
         '''
         if self.opt.mesh_g:
@@ -490,6 +549,76 @@ class Pix2PixHDModel(BaseModel):
         fake_image = self.G.refine(G_in.detach())
         fake_image = self.tanh(fake_image)
 
+        '''
+        den = t_dense[:, 2, :, :].unsqueeze(0)
+        left_hand = torch.FloatTensor((den.cpu().numpy() == 3).astype(np.float)).cuda()
+        right_hand = torch.FloatTensor((den.cpu().numpy() == 4).astype(np.float)).cuda()
+
+        left_arm_seg = torch.FloatTensor((label.cpu().numpy() == 13).astype(np.float)).cuda()
+        right_arm_seg = torch.FloatTensor((label.cpu().numpy() == 11).astype(np.float)).cuda()
+
+        keep_label = torch.FloatTensor((keep_label.cpu().numpy() > 0).astype(np.float)).cuda()
+        '''
+
+        #if self.opt.neck:
+        '''
+        left_ls = torch.FloatTensor((den.cpu().numpy() == 16).astype(np.float)).cuda()
+        left_li = torch.FloatTensor((den.cpu().numpy() == 18).astype(np.float)).cuda()
+        left_us = torch.FloatTensor((den.cpu().numpy() == 20).astype(np.float)).cuda()
+        left_ui = torch.FloatTensor((den.cpu().numpy() == 22).astype(np.float)).cuda()
+        
+        dense_left_arm = left_ls + left_li + left_us + left_ui
+
+        right_ls = torch.FloatTensor((den.cpu().numpy() == 15).astype(np.float)).cuda()
+        right_li = torch.FloatTensor((den.cpu().numpy() == 17).astype(np.float)).cuda()
+        right_us = torch.FloatTensor((den.cpu().numpy() == 19).astype(np.float)).cuda()
+        right_ui = torch.FloatTensor((den.cpu().numpy() == 21).astype(np.float)).cuda()
+
+        dense_right_arm = right_ls + right_li + right_us + right_ui
+        '''
+
+        '''
+        keep_arm_1_mask = new_arm1_mask * (1 - fake_cl_dis) * (1 - clothes_mask)
+        keep_arm_2_mask = new_arm2_mask * (1 - fake_cl_dis) * (1 - clothes_mask)
+        keep_arm_mask = keep_arm_1_mask + keep_arm_2_mask - keep_arm_1_mask * keep_arm_2_mask
+        keep_arm_mask = morpho(keep_arm_mask, 2, bigger=False)
+
+        keep_neck_mask = (1 - fake_cl_dis) * neck_mask
+        keep_neck_mask = morpho(keep_neck_mask, 2, bigger=False)
+
+        keep_mask = keep_arm_mask + keep_neck_mask - keep_arm_mask * keep_neck_mask
+        '''
+
+        #fake_image = fake_image * (1 - keep_label) + real_image * keep_label
+        #fake_image = fake_image * (1 - keep_mask) + real_image * keep_mask
+
+
+
+
+        #print(t_dense.shape)
+        #print(den.shape)
+        #print(torch.max(den))
+
+        '''
+        keep_label = torch.FloatTensor((keep_label.cpu().numpy() > 0).astype(np.float)).cuda()
+
+        hands_mask = left_arm_seg * left_hand + right_arm_seg * right_hand #- left_arm_seg * left_hand * right_arm_seg * right_hand
+        hands_mask = morpho(hands_mask, 3, bigger = False)
+
+        if self.opt.neck:
+            keep_neck_mask = (1 - fake_cl_dis) * neck_mask
+            keep_neck_mask = morpho(keep_neck_mask, 3, bigger=False)
+
+        #hands = img_fore * left_arm_seg * left_hand + img_fore * right_arm_seg * right_hand
+
+        #fake_image = fake_image * (1 - keep_label) + real_image * keep_label
+        #fake_image = fake_image * (1 - hands_mask) + real_image * hands_mask
+        #fake_image = fake_image * (1 - keep_neck_mask) + real_image * keep_neck_mask
+
+        keep_image = real_image * keep_label
+        hands_image = real_image * hands_mask
+        '''
+
         loss_D_fake = 0
         loss_D_real = 0
         loss_G_GAN = 0
@@ -507,7 +636,7 @@ class Pix2PixHDModel(BaseModel):
                 fake_cl, fake_cl_dis,
                 fake_c_Uout, warped,
                 img_hole_hand, dis_label, fake_c,
-                arm_label_G1_out, mask_Uout]
+                arm_label_G1_out, mask_Uout, keep_label, real_image * keep_label]#, real_image * keep_mask, den, left_hand]
 
     def inference(self, label, label_ref, image_ref):
 

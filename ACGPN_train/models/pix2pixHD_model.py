@@ -261,6 +261,9 @@ class Pix2PixHDModel(BaseModel):
                 else:
                     self.criterionLM = networks.LandmarksLoss(self.gpu_ids)
 
+            if self.opt.continuity:
+                self.criterionContinuity = networks.ContinuityLoss(self.gpu_ids, self.opt)
+
             # Names so we can breakout loss
             self.loss_names = self.loss_filter('G_GAN','G_GAN_Feat','G_VGG','D_real','D_fake')
             # initialize optimizers
@@ -368,13 +371,15 @@ class Pix2PixHDModel(BaseModel):
     def forward(self,label,pre_clothes_mask,img_fore,clothes_mask,clothes,all_clothes_label,real_image,pose,mask, person_lm, cloth_lm, cloth_rep, mesh, dense, densearms):
         # Encode Inputs
         #ipdb.set_trace()
-        input_label,masked_label,all_clothes_label= self.encode_input(label * (1-clothes_mask),clothes_mask,all_clothes_label)
+        input_label,masked_label,all_clothes_label= self.encode_input(label,clothes_mask,all_clothes_label)
         #ipdb.set_trace()
         arm1_mask=torch.FloatTensor((label.cpu().numpy()==11).astype(np.float)).cuda()
         arm2_mask=torch.FloatTensor((label.cpu().numpy()==13).astype(np.float)).cuda()
         neck=torch.FloatTensor((label.cpu().numpy()==14).astype(np.float)).cuda()
         pre_clothes_mask=torch.FloatTensor((pre_clothes_mask.detach().cpu().numpy() > 0.5).astype(np.float)).cuda()
-        clothes=clothes*pre_clothes_mask
+
+        if not self.opt.nocmask:
+            clothes=clothes*pre_clothes_mask
 
 
         #clothes_mask -> target
@@ -402,7 +407,7 @@ class Pix2PixHDModel(BaseModel):
             G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, pose, self.gen_noise(shape)], dim=1)
 
         if self.opt.denseplus or self.opt.densestack or self.opt.densearms:
-            print(dense_g1.shape)
+            #print(dense_g1.shape)
             G1_in = torch.cat([pre_clothes_mask, clothes, all_clothes_label, dense_g1, pose, self.gen_noise(shape)], dim=1)
 
         if self.opt.noopenpose:
@@ -412,16 +417,23 @@ class Pix2PixHDModel(BaseModel):
         arm_label=self.G1.refine(G1_in)
         arm_label=self.sigmoid(arm_label)
 
-        print(arm_label.shape)
-        print(input_label.shape)
+        #print(arm_label.shape)
+        #print(input_label.shape)
 
-        #loss_G1 = self.cross_entropy2d(arm_label, (label * (1 - clothes_mask)).transpose(0, 1)[0].long()) *10
-        loss_G1 = F.cross_entropy(
-            arm_label, input_label.long(), weight=None, size_average=True, ignore_index=250
-        ) * 10
+        loss_G1 = self.cross_entropy2d(arm_label, (label * (1 - clothes_mask)).transpose(0, 1)[0].long()) *10
+        #print(arm_label.shape)
+        #print(input_label.shape)
+
+        loss_continuity = 0
+        if self.opt.continuity:
+            loss_continuity = self.criterionContinuity(arm_label.squeeze(0), input_label.squeeze(0))
+        #loss_G1 = F.cross_entropy(
+        #    arm_label, input_label.long(), weight=None, size_average=True, ignore_index=250
+        #) * 10
         #loss_G1 = self.cross_entropy2d(arm_label, (input_label).long()) * 10
         CE_loss = 0
         CE_loss += loss_G1
+        CE_loss += loss_continuity
 
 
         if self.opt.neck:
@@ -472,7 +484,7 @@ class Pix2PixHDModel(BaseModel):
         armlabel_map=armlabel_map*(1-fake_cl_dis)+fake_cl_dis*4
 
 
-        fake_c, warped, warped_mask,rx,ry,cx,cy,rg,cg, warped_cloth_lm = self.Unet(clothes, clothes_mask,pre_clothes_mask,cloth_lm, cloth_rep)
+        fake_c, warped, warped_mask,rx,ry,cx,cy,rg,cg, warped_cloth_lm = self.Unet(clothes, clothes_mask,pre_clothes_mask,cloth_lm, cloth_rep, person_lm)
         #ipdb.set_trace()
         composition_mask = fake_c[:, 3, :, :]
         fake_c=fake_c[:,0:3,:,:]
@@ -487,6 +499,8 @@ class Pix2PixHDModel(BaseModel):
         else:
             img_hole_hand = img_fore * (1 - clothes_mask) * (1 - arm1_mask) * (1 - arm2_mask) + img_fore * arm1_mask * \
                             (1 - mask) + img_fore * arm2_mask * (1 - mask)
+        if self.opt.noinpaint:
+            img_hole_hand = img_fore * (1 - clothes_mask) * (1 - arm1_mask) * (1 - arm2_mask) * (1 - neck)
 
 
         if self.opt.mesh_g:
@@ -562,8 +576,11 @@ class Pix2PixHDModel(BaseModel):
 
         # LM loss
         LM_loss = torch.zeros(loss_G_VGG.shape).cuda()
+
         if self.opt.landmarks:
             LM_loss = self.criterionLM(warped_cloth_lm, person_lm) * self.opt.lambda_flm
+
+        print(fake_c.shape)
 
         loss_G_VGG += self.criterionVGG.warp(fake_c, real_image*clothes_mask) *20
         loss_G3 = loss_G_VGG
@@ -603,7 +620,7 @@ class Pix2PixHDModel(BaseModel):
             return [self.loss_filter(loss_G_GAN, loss_G_GAN_Feat, loss_G_VGG, loss_D_real, loss_D_fake), fake_c,
                     comp_fake_c, dis_label
                 , L1_loss, style_loss, LM_loss, fake_cl, warped, clothes, CE_loss, rx * 0.1, ry * 0.1, cx * 0.1,
-                    cy * 0.1, rg * 0.1, cg * 0.1]
+                    cy * 0.1, rg * 0.1, cg * 0.1, img_hole_hand]
 
     def inference(self, label, label_ref, image_ref):
 

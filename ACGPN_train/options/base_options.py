@@ -108,6 +108,18 @@ class BaseOptions():
         self.parser.add_argument('--flmdistloss', action='store_true',
                                  help='if true, freeze G2 and G')
 
+        self.parser.add_argument('--continuity', action='store_true',
+                                 help='if true, freeze G2 and G')
+
+        self.parser.add_argument('--warplm', action='store_true',
+                                 help='if true, freeze G2 and G')
+
+        self.parser.add_argument('--nocmask', action='store_true',
+                                 help='if true, freeze G2 and G')
+
+        self.parser.add_argument('--noinpaint', action='store_true',
+                                 help='if true, freeze G2 and G')
+
         self.initialized = True
 
     def parse(self, save=True):

@@ -120,6 +120,13 @@ class AlignedDataset(BaseDataset):
                 self.CLM_paths = make_dataset_cloth_lm(self.dir_CLM)
                 self.CLMR_paths = make_dataset_cloth_lm(self.dir_CLM)
 
+        ### input PLM (Person Fashion Landmarks)
+        if opt.isTrain or opt.use_encoded_image:
+            dir_PLM = '_landmarks_person'
+            self.dir_PLM = os.path.join(opt.dataroot, opt.phase + dir_PLM)
+            self.PLM_paths = sorted(make_dataset(self.dir_PLM))
+            self.PLMR_paths = make_dataset(self.dir_PLM)
+
     def random_sample(self,item):
         name = item.split('/')[-1]
         name = name.split('-')[0]
@@ -256,6 +263,10 @@ class AlignedDataset(BaseDataset):
         D_path = self.D_paths[test]
         D = Image.open(D_path).convert('RGB')
         D_tensor = transform_A(D)
+        TD = Image.open(D_path)
+        TD_tensor = np.array(TD)
+        TD_tensor = torch.from_numpy(TD_tensor)
+        TD_tensor = TD_tensor.permute(2, 0, 1)
 
         if self.opt.denseone:
             '''
@@ -336,6 +347,37 @@ class AlignedDataset(BaseDataset):
 
             DA_tensor = dense
 
+        ## Person Landmarks
+        PLM_path = self.PLM_paths[test]
+
+        with open(PLM_path, 'r') as f:
+            lm_p_json = json.load(f)
+            lm_p_data = lm_p_json['landmarks']
+            lm_p_data = np.array(lm_p_data)
+            lm_p_data = lm_p_data.reshape((-1, 2))
+            lm_p_data[:, 0] *= self.fine_width
+            lm_p_data[:, 1] *= self.fine_height
+
+        lm_p_data = np.concatenate((lm_p_data[0:4], lm_p_data[6:8]), 0)
+        lm_p_num = lm_p_data.shape[0]
+        lm_p_map = torch.zeros(lm_p_num, self.fine_height, self.fine_width)
+        r = self.radius
+        lm_p_im = Image.new('L', (self.fine_width, self.fine_height))
+        lm_p_draw = ImageDraw.Draw(lm_p_im)
+
+        for i in range(lm_p_num):
+            one_map = Image.new('L', (self.fine_width, self.fine_height))
+            draw = ImageDraw.Draw(one_map)
+            pointx = lm_p_data[i, 0]
+            pointy = lm_p_data[i, 1]
+            if pointx > 1 and pointy > 1:
+                draw.rectangle((pointx - r, pointy - r, pointx + r, pointy + r), 'white', 'white')
+                lm_p_draw.rectangle((pointx - r, pointy - r, pointx + r, pointy + r), 'white', 'white')
+            one_map = transform_A(one_map)
+            lm_p_map[i] = one_map[0]
+
+        PLM_tensor = lm_p_map
+
         ## Cloth Landmarks
         CLM_path = self.CLM_paths[test]
 
@@ -387,8 +429,10 @@ class AlignedDataset(BaseDataset):
                            'dense': D_tensor,
                            'densearms': DA_tensor,
                            'cloth_lm': CLM_tensor,
+                           'person_lm': PLM_tensor,
                            'cloth_representation': cloth_rep,
-                           'vt_label': VS_tensor
+                           'vt_label': VS_tensor,
+                           'true_dense': TD_tensor
                           }
         else:
             input_dict = {'label': A_tensor,

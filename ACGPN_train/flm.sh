@@ -17,4 +17,4 @@ conda activate venv_vton
 
 unset CUDA_VISIBLE_DEVICES
 
-python train.py --dataroot ../../train_data/  --gpu_ids 0,1,2,3 --niter 10 --niter_decay 10 --batchSize 4  --landmarks --name flm --which_epoch 10 --continue_train
+python train.py --continue_train --dataroot ../../train_data/  --gpu_ids 0,1,2,3 --niter 10 --niter_decay 10 --batchSize 4  --landmarks --name flm --which_epoch 10

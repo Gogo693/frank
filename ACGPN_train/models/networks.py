@@ -262,8 +262,10 @@ class LandmarksLoss(nn.Module):
     def forward(self, x, y):
         lm_num = x.shape[1]
 
-        lm_c_out = x.reshape(4 * lm_num, -1)
-        lm_p_gt = y.reshape(4 * lm_num, -1)
+        #lm_c_out = x.reshape(4 * lm_num, -1)
+        lm_c_out = x
+        #lm_p_gt = y.reshape(4 * lm_num, -1)
+        lm_p_gt = y
 
         loss = 0
         loss += self.mse(lm_c_out, lm_p_gt)
@@ -291,10 +293,10 @@ class LandmarksDistLoss(nn.Module):
 
         return loss
 
-'''
+
 class ContinuityLoss(nn.Module):
     def __init__(self, gpu_ids, opt):
-        super(LandmarksDistLoss, self).__init__()
+        super(ContinuityLoss, self).__init__()
         self.batchSize = opt.batchSize
 
     def forward(self, x, y):
@@ -304,23 +306,33 @@ class ContinuityLoss(nn.Module):
         HPy_target = torch.zeros(x.shape[0] - 1, y.shape[1], 14)
         HPz_target = torch.zeros(x.shape[0], y.shape[1] - 1, 14)
 
+        print(HPy_target.shape)
+        print(HPz_target.shape)
+
         HPy_target = HPy_target.cuda()
         HPz_target = HPz_target.cuda()
 
         #output = x.permute(1, 2, 0).contiguous().view(-1, 15)
 
         #outputHP = output.reshape((im.shape[0], im.shape[1], args.nChannel))
-        HPy = outputHP[1:, :, :] - outputHP[0:-1, :, :]
-        HPz = outputHP[:, 1:, :] - outputHP[:, 0:-1, :]
 
-        HPy = outputHP[:, 1:, :] - outputHP[:, 0:-1, :]
-        HPz = outputHP[:, , 1:] - outputHP[:, :, 0:-1]
+        outputHP = x
+
+        print(outputHP.shape)
+        HPy = outputHP[:, 1:, :, :] - outputHP[:, 0:-1, :, :]
+        HPz = outputHP[:, :, 1:, :] - outputHP[:, :, 0:-1, :]
+
+        print(HPy.shape)
+        print(HPz.shape)
+
+        #HPy = outputHP[:, :, 1:, :] - outputHP[:, :, 0:-1, :]
+        #HPz = outputHP[:, :, , 1:] - outputHP[:, :, :, 0:-1]
 
         lhpy = loss_hpy(HPy, HPy_target)
         lhpz = loss_hpz(HPz, HPz_target)
 
         return lhpy + lhpz
-'''
+
 
 ##############################################################################
 # Generator
@@ -584,7 +596,7 @@ class UnetMask(nn.Module):
                                      nn.Conv2d(64, output_nc, kernel_size=3, stride=1, padding=1)
                                      ])
 
-    def forward(self, input, refer, mask, lm_c_map, cloth_rep):
+    def forward(self, input, refer, mask, lm_c_map, cloth_rep, person_lm):
 
         # mask = pre cloth mask
         # refer = warped cloth mask
@@ -600,6 +612,12 @@ class UnetMask(nn.Module):
                                                                                   torch.cat([mask, refer, cloth_rep], 1),
                                                                                   mask,
                                                                                   lm_c_map)
+        elif self.opt.warplm:
+            warped_cloth, warped_mask, warped_cloth_lm, rx, ry, cx, cy, rg, cg = self.stn(input,
+                                                                                          torch.cat(
+                                                                                              [mask, refer, cloth_rep, person_lm], 1),
+                                                                                          mask,
+                                                                                          lm_c_map)
         else:
             # no cloth rep
             warped_cloth, warped_mask, warped_cloth_lm, rx, ry, cx, cy, rg, cg = self.stn(input,
@@ -1558,6 +1576,8 @@ class CNN(nn.Module):
         self.opt = opt
         if self.opt.clothrep:
             downconv = nn.Conv2d(11, ngf, kernel_size=4, stride=2, padding=1)
+        elif self.opt.warplm:
+            downconv = nn.Conv2d(5 + 6 + 6, ngf, kernel_size=4, stride=2, padding=1)
         else:
             downconv = nn.Conv2d(5, ngf, kernel_size=4, stride=2, padding=1)
         ##downconv = nn.Conv2d(11, ngf, kernel_size=4, stride=2, padding=1)

@@ -96,13 +96,13 @@ def changearmneck(old_label, vt_label):
 
 def addneck(old_label, vt_label):
     label = old_label
-    print(label.shape)
-    print(torch.max(label))
-    print(vt_label.shape)
-    print(torch.max(vt_label))
+    #print(label.shape)
+    #print(torch.max(label))
+    #print(vt_label.shape)
+    #print(torch.max(vt_label))
     neck = torch.FloatTensor((vt_label.cpu().numpy() == 20).astype(np.int))
     label = label * (1 - neck) + neck * 14
-    print(torch.max(label))
+    #print(torch.max(label))
     return label
 
 def changeseg(dense, seg):
@@ -221,7 +221,7 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
         ##add gaussian noise channel && wash the label
         t_mask=torch.FloatTensor((data['label'].cpu().numpy()==7).astype(np.float))
         data['label']=data['label']*(1-t_mask)+t_mask*4
-        mask_clothes=torch.FloatTensor((data['label'].cpu().numpy()==4).astype(np.int))
+        #mask_clothes=torch.FloatTensor((data['label'].cpu().numpy()==4).astype(np.int))
         # if opt.pants:
         ## with neck gives error
         #label = add_misscloth(data['label'], data['vt_label'])
@@ -230,7 +230,7 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
 
         if opt.neck:
             all_clothes_label = changearmneck(data['label'], data['vt_label'])
-            #all_clothes_label = add_misscloth(all_clothes_label, data['vt_label'])
+            all_clothes_label = add_misscloth(all_clothes_label, data['vt_label'])
 
             label = addneck(label, data['vt_label'])
             NC = 15
@@ -254,6 +254,10 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
 
         if opt.nobodyseg:
             all_clothes_label = remove_bodyseg(all_clothes_label)
+
+        label = add_misscloth(label, data['vt_label'])
+
+        mask_clothes = torch.FloatTensor((label.cpu().numpy() == 4).astype(np.int))
 
         '''
         if opt.neck:
@@ -301,8 +305,8 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
                       )
         else:
             ############## Forward Pass ######################
-            losses, fake_image, real_image, input_label, L1_loss, style_loss, LM_loss, clothes_mask, warped, refined, CE_loss, rx, ry, cx, cy, rg, cg = \
-                model(Variable(data['label'].cuda()),
+            losses, fake_image, real_image, input_label, L1_loss, style_loss, LM_loss, clothes_mask, warped, refined, CE_loss, rx, ry, cx, cy, rg, cg, img_hole_hand = \
+                model(Variable(label.cuda()),
                       Variable(data['edge'].cuda()),
                       Variable(img_fore.cuda()),
                       Variable(mask_clothes.cuda()),
@@ -377,24 +381,25 @@ for epoch in range(start_epoch, opt.niter + opt.niter_decay + 1):
 
         
         ### display output images
-        if step % 10 == 0:
-            l = torch.cat([label,label,label],1).cuda()
+        if step % 500 == 0:
+            l = torch.cat([label, label, label], 1).cuda()
             a = generate_label_color(generate_label_plain(input_label)).float().cuda()
             b = real_image.float().cuda()
             c = fake_image.float().cuda()
-            d=torch.cat([clothes_mask,clothes_mask,clothes_mask],1)
-            e=warped
-            f=refined
-            z = torch.cat([all_clothes_label, all_clothes_label, all_clothes_label],1).cuda()
+            d = torch.cat([clothes_mask, clothes_mask, clothes_mask], 1)
+            e = warped
+            f = refined
+            z = torch.cat([all_clothes_label, all_clothes_label, all_clothes_label], 1).cuda()
             x = torch.cat([mask_clothes, mask_clothes, mask_clothes], 1).cuda()
-            #z = generate_label_color(generate_label_plain(all_clothes_label)).float().cuda()
-            #combine = torch.cat([l[0], a[0],b[0],c[0],d[0],e[0], z[0]], 2).squeeze()
-            combine = torch.cat([z[0], l[0], x[0], a[0], b[0], c[0], d[0], e[0], f[0]], 2).squeeze()
-            cv_img=(combine.permute(1,2,0).detach().cpu().numpy()+1)/2
+            hole = img_hole_hand.float().cuda()
+            # z = generate_label_color(generate_label_plain(all_clothes_label)).float().cuda()
+            # combine = torch.cat([l[0], a[0],b[0],c[0],d[0],e[0], z[0]], 2).squeeze()
+            combine = torch.cat([z[0], l[0], x[0], a[0], b[0], c[0], d[0], e[0], f[0], c[0], b[0], hole[0]], 2).squeeze()
+            cv_img = (combine.permute(1, 2, 0).detach().cpu().numpy() + 1) / 2
             writer.add_image('combine', (combine.data + 1) / 2.0, step)
-            rgb=(cv_img*255).astype(np.uint8)
-            bgr=cv2.cvtColor(rgb,cv2.COLOR_RGB2BGR)
-            cv2.imwrite('sample_' + opt.name + '/test'+str(step)+'.jpg',bgr)
+            rgb = (cv_img * 255).astype(np.uint8)
+            bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+            cv2.imwrite('sample_' + opt.name + '/test' + str(step) + '.jpg', bgr)
 
         step += 1
         iter_end_time = time.time()

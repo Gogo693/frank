@@ -514,7 +514,7 @@ class UnetMask(nn.Module):
                                      nn.Conv2d(64, output_nc, kernel_size=3, stride=1, padding=1)
                                      ])
 
-    def forward(self, input, refer, mask,grid, cloth_rep):
+    def forward(self, input, refer, mask,grid, cloth_rep, person_lm):
 
 
         ## input, warped_mask,rx,ry,cx,cy,grid = self.stn(input, torch.cat([mask, refer, cloth_rep], 1), mask,grid)
@@ -527,6 +527,11 @@ class UnetMask(nn.Module):
             input, warped_mask, rx, ry, cx, cy, grid = self.stn(input,
                                                                                   torch.cat([mask, refer, cloth_rep], 1),
                                                                                   mask, grid)
+        elif self.opt.warplm:
+            input, warped_mask, rx, ry, cx, cy, grid = self.stn(input,
+                                                                                          torch.cat(
+                                                                                              [mask, refer, cloth_rep, person_lm], 1),
+                                                                                          mask, grid)
         else:
             # no cloth rep
             input, warped_mask, rx, ry, cx, cy, grid = self.stn(input,
@@ -1479,6 +1484,8 @@ class CNN(nn.Module):
         self.opt = opt
         if self.opt.clothrep:
             downconv = nn.Conv2d(11, ngf, kernel_size=4, stride=2, padding=1)
+        elif self.opt.warplm:
+            downconv = nn.Conv2d(5 + 6 + 6, ngf, kernel_size=4, stride=2, padding=1)
         else:
             downconv = nn.Conv2d(5, ngf, kernel_size=4, stride=2, padding=1)
 

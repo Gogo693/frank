@@ -25,10 +25,16 @@ class AlignedDataset(BaseDataset):
         self.radius=5
         ### input A test (label maps)
         if not (opt.isTrain or opt.use_encoded_image):
-            dir_A = '_A' if self.opt.label_nc == 0 else '_label'
+            if self.opt.cihp:
+                dir_A = '_A' if self.opt.label_nc == 0 else '_cihp_label_formatted'
+            else:
+                dir_A = '_A' if self.opt.label_nc == 0 else '_label'
             self.dir_A = os.path.join(opt.dataroot, opt.phase + dir_A)
             self.A_paths = sorted(make_dataset_test(self.dir_A))
-            dir_AR = '_AR' if self.opt.label_nc == 0 else '_labelref'
+            if self.opt.cihp:
+                dir_AR = '_AR' if self.opt.label_nc == 0 else '_cihp_label_formatted'
+            else:
+                dir_AR = '_AR' if self.opt.label_nc == 0 else '_labelref'
             self.dir_AR = os.path.join(opt.dataroot, opt.phase + dir_AR)
             self.AR_paths = sorted(make_dataset_test(self.dir_AR))
 
@@ -83,7 +89,10 @@ class AlignedDataset(BaseDataset):
 
         ### input A test (label maps)
         if not (opt.isTrain or opt.use_encoded_image):
-            dir_A = '_A' if self.opt.label_nc == 0 else '_label'
+            if self.opt.cihp:
+                dir_A = '_A' if self.opt.label_nc == 0 else '_cihp_label_formatted'
+            else:
+                dir_A = '_A' if self.opt.label_nc == 0 else '_label'
             self.dir_A = os.path.join(opt.dataroot, opt.phase + dir_A)
             self.A_paths = sorted(make_dataset_test(self.dir_A))
 

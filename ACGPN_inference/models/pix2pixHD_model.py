@@ -48,7 +48,7 @@ def morpho(mask,iter,bigger=True):
             tem=cv2.erode(tem,kernel,iterations=iter)
         tem=tem.astype(np.float64)
         tem=tem.reshape(1,256,192)
-        new.append(tem.astype(np.float64)/255.0)
+        new.append(tem.astype(np.float64)/255.0) 
     new=np.stack(new)
     new=torch.FloatTensor(new).cuda()
     return new

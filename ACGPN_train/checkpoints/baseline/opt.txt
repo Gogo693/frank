@@ -1,22 +1,31 @@
 ------------ Options -------------
-batchSize: 8
+batchSize: 4
 beta1: 0.5
 checkpoints_dir: ./checkpoints
+clothlmg2: False
 clothrep: False
+clothrepG2: False
 continue_train: False
+continuity: False
 data_type: 32
 dataroot: ../../train_data/
 debug: False
 dense: False
+densearms: False
+densefull: False
+denseone: False
 denseplus: False
-display_freq: 100
+densestack: False
+display_freq: 10
 display_winsize: 512
 fineSize: 512
+flmdistloss: False
 gpu_ids: [0, 1, 2, 3]
 input_nc: 3
 isTrain: True
 label_nc: 20
 lambda_feat: 10.0
+lambda_flm: 1
 landmarks: False
 loadSize: 512
 load_pretrain: 
@@ -33,6 +42,7 @@ n_layers_D: 3
 n_local_enhancers: 1
 name: baseline
 ndf: 64
+neck: False
 netG: global
 ngf: 64
 niter: 10
@@ -43,19 +53,27 @@ no_ganFeat_loss: False
 no_html: False
 no_lsgan: False
 no_vgg_loss: False
+nobodyseg: False
+nocmask: False
+nocollar: False
+nocord: False
+noinpaint: False
+noopenpose: False
 norm: instance
 num_D: 2
 output_nc: 3
+pants: False
 phase: train
 pool_size: 0
-print_freq: 100
+print_freq: 10
 resize_or_crop: scale_width
-save_epoch_freq: 10
+save_epoch_freq: 5
 save_latest_freq: 20
 serial_batches: False
 tf_log: False
 transfer: False
 use_dropout: False
 verbose: False
+warplm: False
 which_epoch: latest
 -------------- End ----------------
